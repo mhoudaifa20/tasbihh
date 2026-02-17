@@ -1,0 +1,7 @@
+{
+  "name": "Tasbeeh Global",
+  "description": "A premium Islamic utility app featuring a digital Tasbeeh counter, accurate prayer times, Adkar collections, and a global leaderboard for community motivation.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
