@@ -1,31 +1,51 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Modal } from './ui/Modal';
 import { useLanguage } from '../contexts/LanguageContext';
 import { COUNTRIES } from '../constants';
 import { Language, User } from '../types';
-import { Globe, Share2, KeyRound, MapPin, LogOut, Check, Loader2 } from 'lucide-react';
+import { Globe, Share2, MapPin, Check, User as UserIcon, Save } from 'lucide-react';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: User | null;
   onUpdateUser: (user: User) => void;
-  onLogout: () => void;
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, user, onUpdateUser, onLogout }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, user, onUpdateUser }) => {
   const { language, setLanguage, t } = useLanguage();
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle');
-  const [resetStatus, setResetStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
+  
+  // Local state to manage inputs before saving
+  const [formData, setFormData] = useState({
+      username: '',
+      country: ''
+  });
+
+  // Sync formData with user prop when modal opens or user changes
+  useEffect(() => {
+      if (user) {
+          setFormData({
+              username: user.username,
+              country: user.country
+          });
+      }
+  }, [user, isOpen]);
 
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setLanguage(e.target.value as Language);
   };
 
-  const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    if (user) {
-      onUpdateUser({ ...user, country: e.target.value });
-    }
+  const handleSave = () => {
+      if (user) {
+          onUpdateUser({
+              ...user,
+              username: formData.username,
+              country: formData.country
+          });
+          onClose();
+      }
   };
 
   const handleShare = async () => {
@@ -48,21 +68,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, u
     }
   };
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setShareStatus('copied');
-    setTimeout(() => setShareStatus('idle'), 2000);
-  };
-
-  const handleResetPassword = () => {
-    if (resetStatus !== 'idle') return;
-    
-    setResetStatus('sending');
-    // Simulate API delay
-    setTimeout(() => {
-      setResetStatus('sent');
-      setTimeout(() => setResetStatus('idle'), 3000);
-    }, 1500);
+  const copyToClipboard = async () => {
+    const text = window.location.href;
+    try {
+      await navigator.clipboard.writeText(text);
+      setShareStatus('copied');
+      setTimeout(() => setShareStatus('idle'), 2000);
+    } catch (err) {
+       // Fallback for permissions issues
+       try {
+         const textArea = document.createElement("textarea");
+         textArea.value = text;
+         textArea.style.position = "fixed";
+         textArea.style.left = "-9999px";
+         textArea.style.top = "0";
+         document.body.appendChild(textArea);
+         textArea.focus();
+         textArea.select();
+         const successful = document.execCommand('copy');
+         document.body.removeChild(textArea);
+         if (successful) {
+           setShareStatus('copied');
+           setTimeout(() => setShareStatus('idle'), 2000);
+         }
+       } catch (fallbackErr) {
+         console.error('Copy failed', fallbackErr);
+       }
+    }
   };
 
   return (
@@ -91,22 +123,48 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, u
             </select>
           </div>
 
-          {/* Country (Only if logged in) */}
+          {/* User Settings */}
           {user && (
-            <div className="flex flex-col gap-2">
-              <label className="text-sm text-cream-dim flex items-center gap-2">
-                <MapPin size={16} /> {t('change_country')}
-              </label>
-              <select
-                value={user.country}
-                onChange={handleCountryChange}
-                className="bg-navy-light border border-gold-dim rounded-lg p-3 text-cream focus:border-gold outline-none"
+            <>
+              {/* Username */}
+              <div className="flex flex-col gap-2">
+                <label className="text-sm text-cream-dim flex items-center gap-2">
+                  <UserIcon size={16} /> {t('username')}
+                </label>
+                <input
+                  type="text"
+                  value={formData.username}
+                  onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+                  className="bg-navy-light border border-gold-dim rounded-lg p-3 text-cream focus:border-gold outline-none"
+                  placeholder={t('username')}
+                />
+              </div>
+
+              {/* Country */}
+              <div className="flex flex-col gap-2">
+                <label className="text-sm text-cream-dim flex items-center gap-2">
+                  <MapPin size={16} /> {t('change_country')}
+                </label>
+                <select
+                  value={formData.country}
+                  onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
+                  className="bg-navy-light border border-gold-dim rounded-lg p-3 text-cream focus:border-gold outline-none"
+                >
+                  {COUNTRIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Save Button */}
+              <button
+                onClick={handleSave}
+                className="w-full bg-primary text-white py-3 rounded-lg font-bold shadow-lg hover:bg-primary-dark transition-all flex items-center justify-center gap-2 mt-2"
               >
-                {COUNTRIES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
+                  <Save size={18} />
+                  {t('save')}
+              </button>
+            </>
           )}
 
           {/* Actions */}
@@ -121,28 +179,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, u
               </span>
               {shareStatus === 'copied' && <span className="text-xs text-emerald-light">✓</span>}
             </button>
-            
-            <button
-              onClick={handleResetPassword}
-              disabled={resetStatus !== 'idle'}
-              className="flex items-center justify-between p-3 rounded-lg bg-navy-mid hover:bg-navy-light border border-gold-dim/30 text-cream transition-colors disabled:opacity-50"
-            >
-              <span className="flex items-center gap-2">
-                {resetStatus === 'sending' ? <Loader2 size={16} className="animate-spin" /> : 
-                 resetStatus === 'sent' ? <Check size={16} className="text-emerald-light" /> :
-                 <KeyRound size={16} />} 
-                {resetStatus === 'sent' ? t('reset_password_sent') : t('reset_password')}
-              </span>
-            </button>
-
-             {user && (
-               <button
-                 onClick={() => { onLogout(); onClose(); }}
-                 className="flex items-center justify-between p-3 rounded-lg bg-red-900/20 hover:bg-red-900/40 border border-red-500/30 text-red-200 transition-colors mt-2"
-               >
-                 <span className="flex items-center gap-2"><LogOut size={16} /> {t('logout')}</span>
-               </button>
-             )}
           </div>
         </div>
       </div>

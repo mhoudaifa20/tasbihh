@@ -1,9 +1,9 @@
+
 import { PrayerApiResponse, LocationSearchResult } from '../types';
 
-export const fetchPrayerTimesByCity = async (city: string): Promise<PrayerApiResponse | null> => {
+export const fetchPrayerTimesByCity = async (city: string, date: Date = new Date()): Promise<PrayerApiResponse | null> => {
   try {
-    const today = new Date();
-    const d = `${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}`;
+    const d = `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
     const response = await fetch(`https://api.aladhan.com/v1/timingsByCity/${d}?city=${encodeURIComponent(city)}&country=&method=2`);
     const data = await response.json();
     if (data.code === 200) {
@@ -20,10 +20,9 @@ export const fetchPrayerTimesByCity = async (city: string): Promise<PrayerApiRes
   }
 };
 
-export const fetchPrayerTimesByCoords = async (lat: number, lng: number): Promise<PrayerApiResponse | null> => {
+export const fetchPrayerTimesByCoords = async (lat: number, lng: number, date: Date = new Date()): Promise<PrayerApiResponse | null> => {
   try {
-    const today = new Date();
-    const d = `${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}`;
+    const d = `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
     const response = await fetch(`https://api.aladhan.com/v1/timings/${d}?latitude=${lat}&longitude=${lng}&method=2`);
     const data = await response.json();
     if (data.code === 200) {
@@ -50,6 +49,20 @@ export const searchLocations = async (query: string): Promise<LocationSearchResu
     return data;
   } catch (error) {
     console.error("Error searching locations:", error);
+    return [];
+  }
+};
+
+export const fetchHijriCalendar = async (month: number, year: number): Promise<any[]> => {
+  try {
+    const response = await fetch(`https://api.aladhan.com/v1/gToHCalendar/${month}/${year}`);
+    const data = await response.json();
+    if (data.code === 200) {
+      return data.data;
+    }
+    return [];
+  } catch (error) {
+    console.error("Error fetching Hijri calendar:", error);
     return [];
   }
 };

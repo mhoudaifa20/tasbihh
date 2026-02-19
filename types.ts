@@ -61,7 +61,7 @@ export interface LocationSearchResult {
   lon: string;
 }
 
-export type ViewState = 'salah' | 'tasbeeh' | 'adkar' | 'leaderboard';
+export type ViewState = 'home' | 'salah' | 'tasbeeh' | 'adkar' | 'quran' | 'leaderboard' | 'qibla' | 'calendar' | 'istighfar' | 'spiritual_hub';
 
 export interface LeaderboardEntry {
   name: string;
@@ -70,3 +70,35 @@ export interface LeaderboardEntry {
   streak: number;
   isMe?: boolean;
 }
+
+export interface Surah {
+  number: number;
+  name: string;
+  englishName: string;
+  englishNameTranslation: string;
+  numberOfAyahs: number;
+  revelationType: string;
+}
+
+export interface Ayah {
+  number: number;
+  text: string;
+  numberInSurah: number;
+  juz: number;
+  page: number;
+  translation?: string; // For the second edition
+  tafsir?: string; // For Tafsir Al-Muyassar
+  surah?: {
+    number: number;
+    name: string;
+    englishName: string;
+  }
+}
+
+export interface PrayerAlertSettings {
+  offset: number; // minutes
+  sound: string; // url
+  enabled: boolean;
+}
+
+export type PrayerSettingsMap = Record<string, PrayerAlertSettings>;
